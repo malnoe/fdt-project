@@ -10,12 +10,19 @@ _PROMPT_TEMPLATE = """Considérez l'avis suivant:
 
 "{{text}}"
 
-Quelle est la valeur de l'opinion exprimée sur chacun des aspects suivants : Prix, Cuisine, Service?
+Quelle est le sens de l'opinion exprimée sur chacun des aspects suivants : "Prix", "Cuisine", "Service" ?
+L'aspect "Prix" fait référence aux prix des plats et boissons. 
+L'aspect "Cuisine" fait référence à la qualité et la quantité de la nourriture et boissons. 
+L'aspect "Service" fait référence à la qualité et l'efficacité du service et de l'accueil.
 
-La valeur d'une opinion doit être une des valeurs suivantes: "Positive", "Négative", "Neutre", ou "Non exprimée".
+Pour chaque aspect, le sens de l'opinion doit être une des valeurs suivantes: "Positive", "Négative", "Neutre", ou "NE".
+La valeur "Positive" concerne un avis avec une ou plusieurs opinions positive(s) sur l'aspect en question, et aucune opinions négatives sur ce même aspect.
+La valeur "Négative" concerne un avis avec une ou plusieurs opinions négative(s) sur l'aspect en question, et aucune opinions positives sur ce même aspect.
+La valeur "Neutre" concerne un avis avec au moins une opinion positive et une opinion négative opur le même aspect.
+La valeur "NE" (qui signifie Non Exprimée) concerne un avis qui ne contient aucune opinion exprimée sur l'aspect en question.
 
 La réponse doit se limiter au format json suivant:
-{ "Prix": opinion, "Cuisine": opinion, "Service": opinion}."""
+{"Prix": opinion, "Cuisine": opinion, "Service": opinion}."""
 
 
 
@@ -25,7 +32,7 @@ class LLMClassifier:
         self.cfg = cfg
         # Instantiate an ollama client
         self.llmclient = OpenAI(base_url=cfg.ollama_url+'/v1',api_key='EMPTY')
-        self.model_name = 'gemma3:1b'
+        self.model_name = 'llama3.2:1b'
         self.model_options = {
             'max_tokens': 500,  # max number of tokens to predict
             'temperature': 0.1,
