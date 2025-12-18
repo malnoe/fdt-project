@@ -157,7 +157,7 @@ class LLMClassifier:
         Lance au LLM une requête contenant le texte de l'avis et les instructions pour extraire
         les opinions sur les aspects sous forme d'objet json
         :param text: le texte de l'avis
-        :return: un dictionnaire python avec une entrée pour chacun des 4 aspects ayant pour valeur une des
+        :return: un dictionnaire python avec une entrée pour chacun des 3 aspects ayant pour valeur une des
         4 valeurs possibles pour l'opinion (Positive, Négative, Neutre et NE)
         """
         prompt = self.jtemplate.render(text=text)
