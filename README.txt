@@ -1,6 +1,7 @@
 Garance MALNOË & Matthias MAZET
 M2 SSD
 
+Note : metttre dans le texte une phrase sur le fait que tous les prompts sont en annexe du read-me ci-après.
 
 ##### Approche par LLM sans entraînement #####
 
@@ -46,7 +47,7 @@ Pour cette approche, nous avons finalement retenu le LLM gemma2:2b avec notre pr
     The response must be limited to the following json format:
     {"Prix": opinion, "Cuisine": opinion, "Service": opinion}.”””
 
-
+L'ensemble des autres prompts testés sont disponibles en annexe de ce read-me.
 ________________________________________________________________________________
 ________________________________________________________________________________
 
@@ -55,5 +56,14 @@ ________________________________________________________________________________
 
 
 
+________________________________________________________________________________
+________________________________________________________________________________
 
 
+##### Conclusion #####
+...
+
+________________________________________________________________________________
+________________________________________________________________________________
+
+##### Annexe #####

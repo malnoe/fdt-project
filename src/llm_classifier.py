@@ -78,7 +78,7 @@ class LLMClassifier:
         self.model_name = 'gemma2:2b'
         self.model_options = {
             'max_tokens': 1000,  # max number of tokens to predict
-            'temperature': 0.3,
+            'temperature': 0.1,
             'top_p': 0.5,
         }
         self.jtemplate = Template(_PROMPT_TEMPLATE)
@@ -197,7 +197,7 @@ class LLMClassifier:
         return out
     
     # 1. Méthode avec un seul appel au LLM et parsing JSON complet
-    #def predict(self, text: str) -> dict[str,str]:
+    def predict(self, text: str) -> dict[str,str]:
         """
         Lance au LLM une requête contenant le texte de l'avis et les instructions pour extraire
         les opinions sur les aspects sous forme d'objet json
@@ -251,7 +251,7 @@ class LLMClassifier:
         }
     
     # 3. Méthode avec 1 appel par aspect
-    def predict(self, text: str) -> dict[str,str]:
+    #def predict(self, text: str) -> dict[str,str]:
         """
         Lance le LLM une fois pour chaque aspect d'une contribution.
         Récupère pour chaque aspect l'opinion prédite.
