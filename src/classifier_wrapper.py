@@ -52,7 +52,7 @@ class ClassifierWrapper:
         """
         if self.METHOD=='PLMFT':
             # Si fine-tuned PLM, on peut faire du batch processing
-            all_opinions = self.classifier.predict(texts)
+            all_opinions = self.classifier.predict(texts, device)
             return all_opinions
         else:
             # Si LLM, on fait du one-by-one
