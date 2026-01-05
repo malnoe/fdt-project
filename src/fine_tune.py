@@ -140,14 +140,17 @@ def _plmft_collate(batch: list[dict], data_collator: DataCollatorWithPadding) ->
     features = [{"input_ids": x["input_ids"], "attention_mask": x["attention_mask"]} for x in batch]
     padded = data_collator(features)  # tensors
 
-    # labels -> tensors (B,)
-    labels = {asp: torch.tensor([x["labels"][asp] for x in batch], dtype=torch.long) for asp in ASPECTS}
+    # labels -> tensors (B,) - use tensor constructor directly for efficiency
+    labels = {
+        asp: torch.tensor([x["labels"][asp] for x in batch], dtype=torch.long) 
+        for asp in ASPECTS
+    }
     padded["labels"] = labels
     return padded
 
 
 def _evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dict[str, float]:
-    ce = nn.CrossEntropyLoss()
+    ce = nn.CrossEntropyLoss(reduction='sum')
     model.eval()
 
     total_loss = 0.0
@@ -156,27 +159,29 @@ def _evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dic
     correct = {asp: 0 for asp in ASPECTS}
 
     with torch.no_grad():
-        for batch in loader:
+        for batch in tqdm(loader, desc="Validating", leave=False):
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
+            batch_size = input_ids.size(0)
             labels = {asp: batch["labels"][asp].to(device) for asp in ASPECTS}
 
             logits = model(input_ids=input_ids, attention_mask=attention_mask)
-            loss = sum(ce(logits[asp], labels[asp]) for asp in ASPECTS)
+            loss = sum(ce(logits[asp], labels[asp]) for asp in ASPECTS) / len(ASPECTS)
 
-            total_loss += float(loss.item()) * input_ids.size(0)
-            total += input_ids.size(0)
+            total_loss += loss.item() * batch_size
+            total += batch_size
 
             for asp in ASPECTS:
                 preds = torch.argmax(logits[asp], dim=-1)
-                correct[asp] += int((preds == labels[asp]).sum().item())
+                correct[asp] += (preds == labels[asp]).sum().item()
 
+    divisor = max(1, total)
     out = {
-        "val_loss": total_loss / max(1, total),
-        "acc_mean": float(np.mean([correct[asp] / max(1, total) for asp in ASPECTS])),
+        "val_loss": total_loss / divisor,
+        "acc_mean": np.mean([correct[asp] / divisor for asp in ASPECTS]),
     }
     for asp in ASPECTS:
-        out[f"acc_{asp.lower()}"] = correct[asp] / max(1, total)
+        out[f"acc_{asp.lower()}"] = correct[asp] / divisor
 
     model.train()
     return out
@@ -228,7 +233,7 @@ class PLMFTClassifier:
         train_bs = int(_get_cfg(self.cfg, "batch_size", 16))
         eval_bs = int(_get_cfg(self.cfg, "eval_batch_size", 32))
         lr = float(_get_cfg(self.cfg, "lr", 2e-5))
-        epochs = int(_get_cfg(self.cfg, "epochs", 1))
+        epochs = int(_get_cfg(self.cfg, "epochs", 5))
         weight_decay = float(_get_cfg(self.cfg, "weight_decay", 0.01))
         warmup_ratio = float(_get_cfg(self.cfg, "warmup_ratio", 0.1))
 
@@ -259,7 +264,7 @@ class PLMFTClassifier:
             opt, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
 
-        ce = nn.CrossEntropyLoss()
+        ce = nn.CrossEntropyLoss(reduction='sum')
         best_val = float("inf")
 
         for ep in range(1, epochs + 1):
@@ -271,18 +276,19 @@ class PLMFTClassifier:
 
                 input_ids = batch["input_ids"].to(torch_device)
                 attention_mask = batch["attention_mask"].to(torch_device)
+                batch_size = input_ids.size(0)
                 labels = {asp: batch["labels"][asp].to(torch_device) for asp in ASPECTS}
 
                 logits = self.plm_model(input_ids=input_ids, attention_mask=attention_mask)
-                loss = sum(ce(logits[asp], labels[asp]) for asp in ASPECTS)
+                loss = sum(ce(logits[asp], labels[asp]) for asp in ASPECTS) / len(ASPECTS)
 
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.plm_model.parameters(), 1.0)
                 opt.step()
                 sched.step()
 
-                running_loss += float(loss.item()) * input_ids.size(0)
-                seen += input_ids.size(0)
+                running_loss += loss.item() * batch_size
+                seen += batch_size
 
             train_loss = running_loss / max(1, seen)
             metrics = _evaluate(self.plm_model, val_loader, torch_device)
