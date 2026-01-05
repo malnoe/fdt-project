@@ -4,18 +4,23 @@ from tqdm import tqdm
 from config import Config
 
 from llm_classifier import LLMClassifier
+from fine_tune import PLMFTClassifier
+
 
 class ClassifierWrapper:
 
     # METTRE LA BONNE VALEUR ci-dessous en fonction de la méthode utilisée
-    METHOD: str = 'LLM'  # or 'PLMFT' (for Pretrained Language Model Fine-Tuning)
-
+    METHOD: str = 'PLMFT'  # or 'LLM'
     #############################################################################################
     # NE PAS MODIFIER LA SIGNATURE DE CETTE FONCTION, Vous pouvez modifier son contenu si besoin
     #############################################################################################
     def __init__(self, cfg: Config):
+        print("ClassifierWrapper using method:", self.METHOD)
         self.cfg = cfg
-        self.classifier = LLMClassifier(cfg)
+        if self.METHOD=='LLM' :
+            self.classifier = LLMClassifier(cfg)
+        else:
+            self.classifier = PLMFTClassifier(cfg)
 
 
     #############################################################################################
@@ -29,11 +34,10 @@ class ClassifierWrapper:
         -1 veut deire que le device est la cpu, et un nombre entier >= 0 indiquera le numéro de la gpu
         :return:
         """
-        # Mettre tout ce qui est nécessaire pour entrainer le modèle ici, sauf si methode=LLM en zéro-shot
-        # auquel cas pas d'entrainement du tout
-        pass
-    # Fonction à modifier si on utilise PLMFT
-
+        if self.METHOD=='PLMFT':
+            self.classifier.train(train_data, val_data, device)
+        else:
+            pass
 
 
     #############################################################################################
@@ -46,19 +50,15 @@ class ClassifierWrapper:
         -1 veut deire que le device est la cpu, et un nombre entier >= 0 indiquera le numéro de la gpu à utiliser
         :return:
         """
-        all_opinions = []
-        # Comme ici on utilise un llm avce ollama, on procèdera en traitant les textes d'avis un à un
-        # mais si on utilise un PLMFT, il vaut mieux traiter les avis par batch pour que ce soit plus
-        # rapide
-        for text in tqdm(texts):
-            opinions = self.classifier.predict(text)
-            all_opinions.append(opinions)
-        return all_opinions
-
-
-
-
-
-
-
-
+        if self.METHOD=='PLMFT':
+            # Si fine-tuned PLM, on peut faire du batch processing
+            all_opinions = self.classifier.predict(texts)
+            return all_opinions
+        else:
+            # Si LLM, on fait du one-by-one
+            all_opinions = []
+            for text in tqdm(texts):
+                opinions = self.classifier.predict(text)
+                all_opinions.append(opinions)
+            return all_opinions
+        

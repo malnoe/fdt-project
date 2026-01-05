@@ -73,7 +73,6 @@ class LLMClassifier:
 
     def __init__(self, cfg: Config):
         self.cfg = cfg
-        # Instantiate an ollama client
         self.llmclient = OpenAI(base_url=cfg.ollama_url+'/v1',api_key='EMPTY')
         self.model_name = 'gemma2:2b'
         self.model_options = {
@@ -129,11 +128,11 @@ class LLMClassifier:
         """
         s = blob.strip()
 
-        # 1) Remplacer quotes simples par doubles (heuristique simple)
+        # 1. Remplacer quotes simples par doubles (heuristique simple)
         # (suffisant dans la majorité des cas LLM)
         s = re.sub(r"(?<!\\)'", '"', s)
 
-        # 2) Mettre entre guillemets les valeurs non-quotées (mots) après :
+        # 2. Mettre entre guillemets les valeurs non-quotées (mots) après :
         #    {"Prix": opinion} ou {"Prix": NE} etc.
         #    On évite de toucher aux nombres, true/false/null, ou déjà quoté, ou objets/listes.
         def repl(m):
@@ -286,8 +285,6 @@ class LLMClassifier:
             "Service": service_response
         }
     
-## C'est un EXEMPLE de classe de classifieur avec juste un prompt sans fine-tunning.
-
 
 
 

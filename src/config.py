@@ -11,7 +11,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # General options
-    device: int = -1
+    device: int = 1
     ollama_url: str = 'http://localhost:11434'
     n_runs: int = 5
     # n_train is the number of samples on which to run the eval. n_trian=-1 means eval on all test data,
