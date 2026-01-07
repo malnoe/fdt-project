@@ -1,20 +1,17 @@
 from __future__ import annotations
 
+from config import Config
+
+
 import os
 import random
-from typing import Any, Optional
-
 import numpy as np
+from tqdm import tqdm
+from typing import Any, Optional
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
-
-from tqdm import tqdm
-
-from config import Config
-from llm_classifier import LLMClassifier
-
 from transformers import (
     AutoTokenizer,
     AutoModel,
@@ -22,13 +19,16 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
+
+# Définition des aspects et des labels utilisés dans le modèle
 ASPECTS = ["Prix", "Service", "Cuisine"]
 LABELS = ["Négative", "Neutre", "Positive", "NE"]  # ordre fixe
 
+# Mapping entre labels et identifiants numériques
 label2id = {l: i for i, l in enumerate(LABELS)}
 id2label = {i: l for l, i in label2id.items()}
 
-# Optionnel : normalisation si tes données ont des variantes (sinon laisse tel quel)
+# Optionnel : normalisation des labels pour gérer les variantes
 NORMALIZE_LABEL = {
     "Negatif": "Négative",
     "Négatif": "Négative",
@@ -41,61 +41,60 @@ NORMALIZE_LABEL = {
     "N/E": "NE",
 }
 
+# Fonction pour normaliser les labels
+# Permet de s'assurer que les labels sont cohérents
+
 def _norm_label(x: str) -> str:
     x = (x or "").strip()
     return NORMALIZE_LABEL.get(x, x)
 
-
+# Fonction utilitaire pour récupérer une configuration avec une valeur par défaut
 def _get_cfg(cfg: Config, name: str, default: Any) -> Any:
     return getattr(cfg, name, default)
 
-
+# Fonction pour résoudre le device (CPU ou GPU) à utiliser
 def _resolve_device(device: int) -> torch.device:
     if device >= 0 and torch.cuda.is_available():
         return torch.device(f"cuda:{device}")
     return torch.device("cpu")
 
-
+# Fonction pour fixer les seeds pour la reproductibilité des résultats
 def _set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-
-# =========================
-# PLMFT model: encoder + 3 heads
-# =========================
+# Définition du modèle principal pour l'analyse des sentiments
 class AspectSentimentModel(nn.Module):
     def __init__(self, base_model_name: str, dropout: float = 0.1):
         super().__init__()
+        # Chargement du modèle pré-entraîné
         self.encoder = AutoModel.from_pretrained(base_model_name)
         hidden = self.encoder.config.hidden_size
         self.dropout = nn.Dropout(dropout)
+        # Une tête de classification par aspect
         self.heads = nn.ModuleDict({asp: nn.Linear(hidden, len(LABELS)) for asp in ASPECTS})
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> dict[str, torch.Tensor]:
+        # Passage des données dans l'encodeur
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-
-        # pooling : pooler_output si dispo, sinon mean pooling masqué
+        # Pooling des sorties pour obtenir une représentation fixe
         pooled = getattr(out, "pooler_output", None)
         if pooled is None:
-            last_hidden = out.last_hidden_state  # (B, T, H)
-            mask = attention_mask.unsqueeze(-1)  # (B, T, 1)
+            last_hidden = out.last_hidden_state 
+            mask = attention_mask.unsqueeze(-1)
             pooled = (last_hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
-
         pooled = self.dropout(pooled)
-        logits = {asp: self.heads[asp](pooled) for asp in ASPECTS}  # each (B, 4)
+        # Calcul des logits pour chaque aspect
+        logits = {asp: self.heads[asp](pooled) for asp in ASPECTS}
         return logits
 
-
-# =========================
-# PLMFT dataset
-# =========================
+# Définition du dataset pour les avis
 class ReviewsDataset(Dataset):
     """
-    attend une liste de dicts:
-      {"Avis": "...", "Prix": "...", "Service": "...", "Cuisine": "..."}
+    Classe pour gérer les données d'entraînement et de validation.
+    Attend une liste de dictionnaires contenant les avis et les labels associés.
     """
 
     def __init__(self, data: list[dict], tokenizer, max_length: int):
@@ -110,6 +109,7 @@ class ReviewsDataset(Dataset):
         ex = self.data[i]
         text = ex["Avis"]
 
+        # Tokenisation du texte
         enc = self.tokenizer(
             text,
             truncation=True,
@@ -118,6 +118,7 @@ class ReviewsDataset(Dataset):
             return_tensors=None,
         )
 
+        # Normalisation et vérification des labels
         labels = {}
         for asp in ASPECTS:
             lab = _norm_label(ex[asp])
@@ -134,13 +135,11 @@ class ReviewsDataset(Dataset):
             "labels": labels,
         }
 
-
+# Fonction pour gérer le padding et la création des batchs
 def _plmft_collate(batch: list[dict], data_collator: DataCollatorWithPadding) -> dict[str, Any]:
-    # padding dynamique via HF
     features = [{"input_ids": x["input_ids"], "attention_mask": x["attention_mask"]} for x in batch]
     padded = data_collator(features)  # tensors
 
-    # labels -> tensors (B,) - use tensor constructor directly for efficiency
     labels = {
         asp: torch.tensor([x["labels"][asp] for x in batch], dtype=torch.long) 
         for asp in ASPECTS
@@ -148,7 +147,7 @@ def _plmft_collate(batch: list[dict], data_collator: DataCollatorWithPadding) ->
     padded["labels"] = labels
     return padded
 
-
+# Fonction pour évaluer le modèle sur un ensemble de validation
 def _evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dict[str, float]:
     ce = nn.CrossEntropyLoss(reduction='sum')
     model.eval()
@@ -186,6 +185,7 @@ def _evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dic
     model.train()
     return out
 
+# Classe principale pour gérer le modèle PLMFT
 class PLMFTClassifier:
     def __init__(self, cfg: Config):
         self.cfg = cfg
@@ -200,6 +200,7 @@ class PLMFTClassifier:
         self.ckpt_path: str = os.path.join(self.output_dir, "best.pt")
         self._init_plmft()
 
+    # Initialisation du tokenizer et du modèle
     def _init_plmft(self) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.plm_model = AspectSentimentModel(
@@ -207,14 +208,13 @@ class PLMFTClassifier:
             dropout=float(_get_cfg(self.cfg, "dropout", 0.1)),
         )
 
-
+    # Fonction pour entraîner le modèle
     def train(self, train_data: list[dict], val_data: list[dict], device: int) -> None:
         """
-        :param train_data:
-        :param val_data:
-        :param device: un nombre qui identifie le numéro de la gpu sur laquelle le traitement doit se faire
-        -1 veut dire que le device est la cpu, et un nombre entier >= 0 indiquera le numéro de la gpu
-        :return:
+        Entraîne le modèle sur les données d'entraînement et évalue sur les données de validation.
+        :param train_data: Données d'entraînement
+        :param val_data: Données de validation
+        :param device: Identifiant du device (CPU ou GPU)
         """
         if self.plm_model is None or self.tokenizer is None:
             self._init_plmft()
@@ -226,9 +226,11 @@ class PLMFTClassifier:
         self.plm_model.to(torch_device)
         self.plm_model.train()
 
+        # Fixer les seeds pour la reproductibilité
         seed = int(_get_cfg(self.cfg, "seed", 42))
         _set_seed(seed)
 
+        # Chargement des hyperparamètres
         max_len = int(_get_cfg(self.cfg, "max_length", 256))
         train_bs = int(_get_cfg(self.cfg, "batch_size", 16))
         eval_bs = int(_get_cfg(self.cfg, "eval_batch_size", 32))
@@ -237,6 +239,7 @@ class PLMFTClassifier:
         weight_decay = float(_get_cfg(self.cfg, "weight_decay", 0.01))
         warmup_ratio = float(_get_cfg(self.cfg, "warmup_ratio", 0.1))
 
+        # Préparation des datasets et des loaders
         train_ds = ReviewsDataset(train_data, self.tokenizer, max_len)
         val_ds = ReviewsDataset(val_data, self.tokenizer, max_len)
 
@@ -255,7 +258,7 @@ class PLMFTClassifier:
             collate_fn=lambda b: _plmft_collate(b, collator),
         )
 
-        # Optim + scheduler
+        # Optimiseur et scheduler
         opt = AdamW(self.plm_model.parameters(), lr=lr, weight_decay=weight_decay)
         total_steps = epochs * max(1, len(train_loader))
         warmup_steps = int(warmup_ratio * total_steps)
@@ -267,6 +270,7 @@ class PLMFTClassifier:
         ce = nn.CrossEntropyLoss(reduction='sum')
         best_val = float("inf")
 
+        # Boucle d'entraînement
         for ep in range(1, epochs + 1):
             running_loss = 0.0
             seen = 0
@@ -303,7 +307,7 @@ class PLMFTClassifier:
                 f"acc_cuisine={metrics['acc_cuisine']:.4f}"
             )
 
-            # save best (by val_loss)
+            # Sauvegarde du meilleur modèle (basé sur val_loss)
             if metrics["val_loss"] < best_val:
                 best_val = metrics["val_loss"]
                 torch.save(
@@ -316,18 +320,19 @@ class PLMFTClassifier:
                     self.ckpt_path,
                 )
 
-        # reload best
+        # Rechargement du meilleur modèle
         if os.path.isfile(self.ckpt_path):
             state = torch.load(self.ckpt_path, map_location="cpu")
             self.plm_model.load_state_dict(state["model_state_dict"])
             self.plm_model.eval()
 
+    # Fonction pour effectuer des prédictions sur de nouveaux textes
     def predict(self, texts: list[str], device: int) -> list[dict]:
         """
-        :param texts:
-        :param device: device: un nombre qui identifie le numéro de la gpu sur laquelle le traitement doit se faire
-        -1 veut deire que le device est la cpu, et un nombre entier >= 0 indiquera le numéro de la gpu à utiliser
-        :return:
+        Prédit les labels pour une liste de textes donnés.
+        :param texts: Liste de textes à analyser
+        :param device: Identifiant du device (CPU ou GPU)
+        :return: Liste de dictionnaires contenant les prédictions pour chaque aspect
         """
         if self.plm_model is None or self.tokenizer is None:
             self._init_plmft()
@@ -353,7 +358,7 @@ class PLMFTClassifier:
                 max_length=max_len,
                 padding=True,
                 return_tensors="pt",
-            )
+            ) # type: ignore
             enc = {k: v.to(torch_device) for k, v in enc.items()}
 
             with torch.no_grad():

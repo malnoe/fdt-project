@@ -6,6 +6,7 @@ import json
 
 from config import Config
 
+# Template général
 _PROMPT_TEMPLATE = """Considere the following review:
 
     "{{text}}"
@@ -23,6 +24,7 @@ _PROMPT_TEMPLATE = """Considere the following review:
     The response must be limited to the following json format:
     {"Prix": opinion, "Cuisine": opinion, "Service": opinion}."""
 
+# Templates par aspect
 _PROMPT_TEMPLATE_SERVICE = """
     Considère l'avis suivant :
 
@@ -68,9 +70,9 @@ Considère l'avis suivant :
     Commence par détailler brièvement les éléments de l'avis qui t'ont permis de déterminer cette opinion puis donne la réponse de l'opinion sous la forme {"Prix": opinion}.
     """
 
-
+# Definition d'une nouvelle class LLMClassifier avec une méthode __init__ et predict pour l'utilisation dans classifier_wrapper.py
 class LLMClassifier:
-
+    
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.llmclient = OpenAI(base_url=cfg.ollama_url+'/v1',api_key='EMPTY')
@@ -169,6 +171,7 @@ class LLMClassifier:
         return "NE"
 
     def parse_json_response(self, response: str) -> dict[str, str]|None:
+        """Extrait et parse le premier objet JSON dans la réponse du LLM avec normalisation."""
         blob = self._extract_first_json_object(response)
         if not blob:
             # aucun JSON détecté -> on renvoie tout à NE

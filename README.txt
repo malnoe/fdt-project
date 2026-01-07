@@ -2,6 +2,7 @@ Garance MALNOË & Matthias MAZET
 M2 SSD
 
 Note : metttre dans le texte une phrase sur le fait que tous les prompts sont en annexe du read-me ci-après.
+Ajouter également des résultats numériques pour les principaux modèles / prompts testés.
 
 ##### Approche par LLM sans entraînement #####
 

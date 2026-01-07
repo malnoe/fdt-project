@@ -4,7 +4,7 @@ from tqdm import tqdm
 from config import Config
 
 from llm_classifier import LLMClassifier
-from fine_tune import PLMFTClassifier
+from plmft_classifier import PLMFTClassifier
 
 
 class ClassifierWrapper:
@@ -17,6 +17,7 @@ class ClassifierWrapper:
     def __init__(self, cfg: Config):
         print("ClassifierWrapper using method:", self.METHOD)
         self.cfg = cfg
+        # Selon la méthode choisie, initialiser le classifieur approprié
         if self.METHOD=='LLM' :
             self.classifier = LLMClassifier(cfg)
         else:
