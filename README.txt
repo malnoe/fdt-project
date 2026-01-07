@@ -1,35 +1,56 @@
 Garance MALNOË & Matthias MAZET
 M2 SSD
+
+________________________________________________________________________________
+
 ##### Introduction #####
 
 Expliquer l'objectif du projet, la démarche globale pour mener le projet et les 2 approches testés.
 
+________________________________________________________________________________
+
 ##### Approche par LLM sans entraînement #####
 
 Notre approche s'est construite en plusieurs étapes :
-    Étape 1. Tests de différents prompts sur les différents modèles de LLMs.
-Nous avons rédigé différents prompts afin d'aborder le problème sous différents angles. Nous avons testé, pour chaque LLM : 
-  - Un prompt basique détaillant les différents aspects à noter (Cuisine, Prix et Service) et les différents grades de notations (Positive, Neutre, Négative et Non Exprimée).
-  - Une version anglaise du prompt précédent, avec les tags en français pour conserver la cohérence de sortie.
-  - Une version plus détaillée du premier prompt, avec notamment l'ajout de notions de références et de quelques mots exemples pour chaque aspect (e.g. : "L'aspect "Prix" fait référence aux prix des plats et boissons. Il concerne tout ce qui parle d'argent, de coût, de tarifs, etc., avec un vocabulaire tel que "trop cher", "prix", "rapport qualité/prix", etc.").
-  - Une version anglaise du prompt précédent.
-  - Une version du premier prompt où nous demandions au LLM d'expliquer sa démarche (certaines études ont montraient que les performances d'un LLM augmentaient simplement grâce à cette demande).
-  - Une version du premier prompt avec l'ajout d'exemples de classifications d'opinions.
-  - Une combinaison de plusieurs approches, i.e. un prompt plus détaillé avec l'ajout d'exemples de classification d'opinions. Nous n'avons pas ajouté l'explication de la démarche car le temps de calcul était trop long par rapport à l'efficacité du prompt.
-Cette première étape nous a permis de choisir la meilleure combinaison prompt/LLM. À quelques exceptions près, le LLM avec les meilleures performances en termes d'accuracy moyenne et de temps de calcul était le gemma2:2b. La meilleure accuracy moyenne avec ce LLM a été obtenue avec le prompt basique en anglais. Nous avons pu constater que l'ajout d'exemples détériorait significativement l'accuracy moyenne, tandis que l'explication de la démarche augmentait grandement le temps de calcul. L'ajout de détails n'a eu que peu d'impact sur l'accuracy moyenne mais augmentait le temps d'exécution, c'est pourquoi nous ne l'avons pas conservé.
-
-    Étape 2. Modifications des hyperparamètres.
-Une fois la meilleure combinaison prompt/LLM retenue (prompt basique en anglais avec gemma2:2b), nous avons testé différentes combinaisons de valeurs pour les hyperparamètres de température `temp` et `top_p` afin d'observer leur impact sur l'accuracy moyenne et le temps d'exécution. Ainsi, nous avons noté un intérêt à diminuer la top_p jusqu'à un certain seuil (environ 0.5).
-
-    Étape 3. Répétition de LLMs.
-Toujours avec la combinaison prompt/LLM retenue à l'étape 1, nous avons ensuite tenté de répéter trois fois le même LLM avec une température élevée afin d'observer les variations de classifications. Par un vote à la majorité sur les trois exécutions, nous n'avons finalement pas constaté de réel intérêt à cette approche, et nous n'avons donc pas poussé la démarche plus loin (notamment en raison de temps d'exécution plutôt conséquents).
     
-    Étape 4. Un prompt par aspect.
-La dernière étape tentée pour cette approche a été la construction de prompt individuel pour chaque aspect.
-Nous avons testé des prompts basiques en français et en anglais pour chaque aspect (même prompts que précédemment mais redécoupé pour chaque aspect), dont nous avons ensuite combiner les prédictions afin d'obtenir le format final souhaité. Cette approche n'ayant pas donné de bons résultats en termes d'accuracy moyenne, nous n'avons pas poussé la réflexion plus loin.
+* Étape 1. Tests de différents prompts sur les différents modèles de LLMs.
+    Nous avons testés l'ensemble des LLM autorisés par le cadre du projet : gemma2:2b, gemma3:1b, llama3.2:1b, qwen2.5:1.5b, qwen3:1.7b.
+
+    Nous avons rédigé différents prompts pour essayer d'augmenter les performances en testant plusieurs angles. 
+    Chaque prompt a été testé sur chacun des LLMs avec les mêmes hyperparamètres (temp=0.1 et top_p=0.9) afin de comparer les performances en termes d'accuracy moyenne et de temps d'exécution.
+    
+    Les prompts testés étaient les suivants :
+        - Un prompt basique détaillant les différents aspects à noter (Cuisine, Prix et Service) et les différents grades de notations (Positive, Neutre, Négative et Non Exprimée).
+        - Une version anglaise du prompt précédent, avec les tags en français pour conserver la cohérence de sortie.
+        - Une version plus détaillée du premier prompt, avec notamment l'ajout de notions de références et de quelques mots exemples pour chaque aspect (e.g. : "L'aspect "Prix" fait référence aux prix des plats et boissons. Il concerne tout ce qui parle d'argent, de coût, de tarifs, etc., avec un vocabulaire tel que "trop cher", "prix", "rapport qualité/prix", etc.").
+        - Une version anglaise du prompt précédent.
+        - Une version du premier prompt où nous demandions au LLM d'expliquer sa démarche (certaines études ont montraient que les performances d'un LLM augmentaient simplement grâce à cette demande).
+        - Une version du premier prompt avec l'ajout d'exemples de classifications d'opinions.
+        - Une combinaison de plusieurs approches, i.e. un prompt plus détaillé avec l'ajout d'exemples de classification d'opinions. Nous n'avons pas ajouté l'explication de la démarche car le temps de calcul était trop long par rapport à l'efficacité du prompt.
+    
+
+    Cette première étape nous a permis de sélectionner une première combinaison prompt/LLM à retenir pour les étapes suivantes.
+    À quelques exceptions près, le LLM avec les meilleures performances en termes d'accuracy moyenne et de temps de calcul était toujours le gemma2:2b et la meilleure accuracy moyenne (83,61% pour 686s de prédiction) avec ce LLM a été obtenue avec le prompt basique en anglais. 
+    Nous avons pu constater que l'ajout d'exemples détériorait significativement l'accuracy moyenne, tandis que l'explication de la démarche augmentait grandement le temps de calcul. L'ajout de détails n'a eu que peu d'impact sur l'accuracy moyenne mais augmentait grandement le temps d'exécution, c'est pourquoi nous ne l'avons pas conservé.
 
 
-Pour cette approche, nous avons finalement retenu le LLM gemma2:2b avec notre prompt en anglais, une température de 0.1 et une top_p de 0.5. Avec cette combinaison, nous avons obtenu une accuracy moyenne de 83.78 pour un temps d'exécution de 601 secondes. Le prompt utilisé était le suivant :
+* Étape 2. Recherche des meilleurs hyperparamètres.
+    Une fois la meilleure combinaison prompt/LLM retenue (prompt basique en anglais avec gemma2:2b), nous avons testé différentes combinaisons de valeurs pour les hyperparamètres de température `temp` et `top_p` afin d'observer leur impact sur l'accuracy moyenne et le temps d'exécution (temp = [0.1,0.5,0.8] et top_p = [0.3,0.5,0.9]). Nous n'avons pas testés plus de valeurs pour la température et la top_p car nous n'avons observer que des variations minimales (<0.1%) de l'accuracy moyenne entre ces différentes valeurs.
+    Les variations de température n'ont pas eu d'impact significatif sur les performances mais nous avons noté un léger intérêt à diminuer la top_p pour augmenter l'accuracy moyenne (81,83% au moins -> 83,78% au plus).
+    Les meilleures performances (accuracy moyenne = 83,78, temps de prédicition de 601 secondes) ont été obtenues avec une température de 0.1 et une top_p de 0.5, ces paramètres ont donc été retenus.
+
+* Étape 3. Vote de majorité après répétition de plusieurs appels d'un même prompt.
+    Nous avons ensuite testé une approche de vote à la majorité en répétant plusieurs fois (3) le même appel LLM avec le même prompt avec une température élevée (temp=0.7 pour les meilleures performances et top_p=0.5) afin peut-être d'obtenir une meilleure précision. 
+    Nous avons de nouveau utilisé la combinaison prompt en anglais / gemma2:2b retenue à l'étape 1.
+    Cependant, nous n'avons finalement pas constaté de réel intérêt à cette approche (accuracy moyenne = 83,67 au mieux), que nous avons donc décidé de ne pas retenir notamment en raison de temps d'exécution plutôt conséquents (moyenne = 2062 secondes contre environ 600s) liés à la répétition des appels LLM pour une seule prédiction.
+    
+* Étape 4. Un prompt par aspect.
+    La dernière étape tentée pour cette approche a été la construction de prompt individuel pour chaque aspect.
+    Nous avons testé des prompts basiques en français et en anglais pour chaque aspect (même forme que précédemment mais redécoupé pour chaque aspect), dont nous avons ensuite combiner les prédictions afin d'obtenir le format final souhaité. 
+    Cette approche n'a malheureusement pas donné de bons résultats en termes d'accuracy moyenne (accuracy moyenne max = 68,11%), nous n'avons pas poussé la démarche plus loin et avons décidé de ne pas retenir cette approche.
+
+
+Pour l'approche par LLM, nous avons finalement retenu le LLM gemma2:2b avec le prompt en anglais (prompt n°3) ci-dessous, avec une température de 0.1 et une top_p de 0.5. Nous avons obtenu une accuracy moyenne de 83.78 pour un temps d'exécution de 601 secondes.
 
 """Considere the following review:
 
@@ -46,25 +67,64 @@ Pour cette approche, nous avons finalement retenu le LLM gemma2:2b avec notre pr
     The value "NE" (which stands for Non Expressed) refers to a review that does not contain any opinion expressed on the aspect in question.
 
     The response must be limited to the following json format:
-    {"Prix": opinion, "Cuisine": opinion, "Service": opinion}.”””
+    {"Prix": opinion, "Cuisine": opinion, "Service": opinion}."""
 
 L'ensemble des autres prompts testés sont disponibles en annexe de ce read-me.
-________________________________________________________________________________
-________________________________________________________________________________
 
+________________________________________________________________________________
 
 ##### Approche par PLMFT #####
 
+Pour cette approche nous avons testés plusieurs modèles masqués pré-entrainés (au moins en partie) sur des données en français et qui soient disponibles sur Hugging Face : 
+- google-bert/bert-base-multilingual-cased
+- almanach/camembert-base
+- almanach/moderncamembert-base
+- FacebookAI/xlm-roberta-base
+- cmarkea/distilcamembert-base
 
+L'ensemble de ces modèles ont été fine-tunés sur les jeux d'entrainement et de validation fournis pour la tâche de classification des avis en 4 classes (Positive, Neutre, Négative, NE) pour chacun des aspects (Prix, Cuisine, Service) avec 3 epoch et les mêmes hyperparamètres [insérer description des hyperparamètres].
+Voici les résultats obtenus sur le jeu de test (donc de validation) pour chaque modèle :
 
+| Modèle                                   | Accuracy moyenne (%) | Temps d'entrainement (s) | Temps de prédiction (s) |
+|------------------------------------------|----------------------|--------------------------|-------------------------|
+| google-bert/bert-base-multilingual-cased | 81,56                | 7970                     | 131                     |
+| almanach/camembert-base                  | 81,50                | 5144                     | 75                      |
+| almanach/moderncamembert-base            | 83,95                | 5704                     | 107                     |
+| FacebookAI/xlm-roberta-base              | 83,11                | 7520                     | 80                      |
+| cmarkea/distilcamembert-base             | 84,56                | 3516                     | 53                      |
+
+Nous avons donc testés sur 5 epochs (toujours les mêmes hyperparamètres) les trois modèles ayant obtenus les meilleurs résultats sur le jeu de validation (moderncamembert-base, xlm-roberta-base et distilcamembert-base) afin de voir si les performances pouvaient être améliorées en ajoutant d'avantage de temps d'entrainement. Voici les résultats obtenus :
+
+| Modèle                                   | Accuracy moyenne (%) | Temps d'entrainement (s) | Temps de prédiction (s) |
+|------------------------------------------|----------------------|--------------------------|-------------------------|
+| almanach/moderncamembert-base            | 84,17                | 10300                    | 107                     | => le modèle retenu est celui de l'epoch 3, les epochs suivants présentant un loss plus important sur le jeu de validation.
+| FacebookAI/xlm-roberta-base              | 84,34                | 11300                    | 80                      |
+| cmarkea/distilcamembert-base             | 85,94                | 5730                     | 53                      |
+
+Le modèle retenu à la fin de cette étape est donc le cmarkea/distilcamembert-base fine-tuné. Pour compléter cette approche, nous avons ensuite entrainé ce modèles sur 10 epochs plusieurs fois pour choisir à quelle epoch s'arrêter.
+A chaque fois, c'est l'epoch 5 qui a été retenue, avec une accuracy moyenne de 86.39, 86,28 et 85,94.
+
+Pour l'approche par PLMFT, le modèle retenu est donc le cmarkea/distilcamembert-base fine-tuné sur 5 epochs, avec une accuracy moyenne de 86,20%.
+
+Commentaires à ajouter :
+- Problème de temps d'entainement très long sur CPU (GPU non disponible) donc pas possible de tester beaucoup de combinaisons d'hyperparamètres, de nombre d'epochs, de modèles différents.
+- Le temps d'entrainement est long mais le temps de prédiction est très faible comparé à l'approche par LLM, cette approche est donc plus adaptée si on souhaite faire beaucoup de prédictions.
 ________________________________________________________________________________
-________________________________________________________________________________
-
 
 ##### Conclusion #####
-...
 
+- Comparaison des deux approches : temps de calcul, accuracy obtenue, avantages/inconvénients.
+- Comme dit précèdemment : l'approche par PLMFT est plus adaptée si on souhaite faire beaucoup de prédictions, car le temps de prédiction est très faible comparé à l'approche par LLM. En revanche, le temps d'entrainement est très long (surtout sans GPU) et l'accuracy obtenue est légèrement inférieure à celle de l'approche par LLM.
+- Nous on suppose que l'évaluation du projet se fera avec un GPU, donc que l'approche par PLMFT sera plus si désavantagée.
+- Nous on a fait le choix de maximimser l'accuracy, plutôt que de minimiser le temps de calcul donc l'approche finalement retenue est l'approche par PLMFT.
+- Consigne : Un ou deux paragraphes décrivant le classifieur (type de représentation, type d’architecture, hyper-paramètres, ressources éventuellement
+utilisées, etc.)
 ________________________________________________________________________________
+
+##### Utilisation de l'IA #####
+
+Dans le cadre de ce projet, nous avons utilisé l'IA pour nous aider à comprendre comment faire un classifieur fine-tuné avec plusieurs classes avec torch et transformers et pour écrire du code, notamment pour l'implémentation du classifieur PLMFT et certaines fonctions de parse du classifieur LLM. Les modèles utilisés sont ChatGPT (GPT-5.1) et Copilot.
+
 ________________________________________________________________________________
 
 ##### Annexe #####
