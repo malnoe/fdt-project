@@ -5,7 +5,10 @@ ________________________________________________________________________________
 
 ##### Introduction #####
 
-Expliquer l'objectif du projet, la démarche globale pour mener le projet et les 2 approches testés.
+L'object de ce projet est de construire un classifieur capable de déterminer l'opinion exprimé dans des avis de clients de restaurants sur trois aspects : le prix, la cuisine et le service avec quatre catégories : Positive, Négative, Neutre ou Non Exprimée (NE).
+Pour cela, nous avons construit et testés deux approches différentes de classifieur : une approche utilisant un Large Language Model (LLM) sans entraînement et une approche par Fine-Tuning d'un modèle déjà pré-entrainé (PLMFT).
+La démarche globale pour chaque approche est détaillée dans les sections suivantes, ainsi que les résultats obtenus et le modèle finalement retenu pour chaque approche.
+Le modèle final retenu pour le projet est détailé dans la conclusion.
 
 ________________________________________________________________________________
 
@@ -75,7 +78,7 @@ ________________________________________________________________________________
 
 ##### Approche par PLMFT #####
 
-Pour cette approche nous avons testés plusieurs modèles masqués pré-entrainés (au moins en partie) sur des données en français et qui soient disponibles sur Hugging Face : 
+Pour cette approche nous avons testés plusieurs modèles masqués pré-entrainés (au moins en partie) sur des données en français, qui soient disponibles sur Hugging Face et qui comprennent moins de 300 millions de paramètres : 
 - google-bert/bert-base-multilingual-cased
 - almanach/camembert-base
 - almanach/moderncamembert-base
@@ -102,28 +105,43 @@ Nous avons donc testés sur 5 epochs (toujours les mêmes hyperparamètres) les 
 | cmarkea/distilcamembert-base             | 85,94                | 5730                     | 53                      |
 
 Le modèle retenu à la fin de cette étape est donc le cmarkea/distilcamembert-base fine-tuné. Pour compléter cette approche, nous avons ensuite entrainé ce modèles sur 10 epochs plusieurs fois pour choisir à quelle epoch s'arrêter.
-A chaque fois, c'est l'epoch 5 qui a été retenue, avec une accuracy moyenne de 86.39, 86,28 et 85,94.
+A chaque fois, c'est l'epoch 5 qui a été retenue, avec une accuracy moyenne de 86.39, 86,28 et 85,94 respectivement pour les trois essais. Les epochs suivantes présentant un loss plus important sur le jeu de validation.
 
-Pour l'approche par PLMFT, le modèle retenu est donc le cmarkea/distilcamembert-base fine-tuné sur 5 epochs, avec une accuracy moyenne de 86,20%.
+Pour l'approche par PLMFT, le modèle retenu est donc celui entrainé sur cmarkea/distilcamembert-base fine-tuné sur 5 epochs, avec lequel nous obtenons une accuracy moyenne de 86,20%.
 
-Commentaires à ajouter :
-- Problème de temps d'entainement très long sur CPU (GPU non disponible) donc pas possible de tester beaucoup de combinaisons d'hyperparamètres, de nombre d'epochs, de modèles différents.
-- Le temps d'entrainement est long mais le temps de prédiction est très faible comparé à l'approche par LLM, cette approche est donc plus adaptée si on souhaite faire beaucoup de prédictions.
+Il est important de noter que les entrainement ont été réalisés sur CPU (GPU non disponible) et que les temps seraient pourraient être réduits assez significativement avec l'utilisation d'un GPU. 
+Ce temps de calcul très important nous a limité dans le nombre d'expérimentations que nous avons pu faire sur cette approche.
+
 ________________________________________________________________________________
 
 ##### Conclusion #####
 
-- Comparaison des deux approches : temps de calcul, accuracy obtenue, avantages/inconvénients.
-- Comme dit précèdemment : l'approche par PLMFT est plus adaptée si on souhaite faire beaucoup de prédictions, car le temps de prédiction est très faible comparé à l'approche par LLM. En revanche, le temps d'entrainement est très long (surtout sans GPU) et l'accuracy obtenue est légèrement inférieure à celle de l'approche par LLM.
-- Nous on suppose que l'évaluation du projet se fera avec un GPU, donc que l'approche par PLMFT sera plus si désavantagée.
-- Nous on a fait le choix de maximimser l'accuracy, plutôt que de minimiser le temps de calcul donc l'approche finalement retenue est l'approche par PLMFT.
-- Consigne : Un ou deux paragraphes décrivant le classifieur (type de représentation, type d’architecture, hyper-paramètres, ressources éventuellement
-utilisées, etc.)
+Il semble donc ressortir qu'un choix doit être fait entre les deux approches proposées selon le contexte d'utilisation du classifier : 
+- l'approche par LLM sans entraineement est pertinente si l'on souhaite faire peu de prédictions grâce à l'absence de temps d'entrainement, un temps de prédiction restant raisonnable et une accuracy moyenne correcte assez proche de l'approche par PLMFT (83,78% contre 86,20%).
+- l'approche par PLMFT est plus adaptée si l'on souhaite réaliser beaucoup de prédictions et que l'on a accès à un GPU permettant de réduire le temps d'entrainement, qui permet de obtenir une accuracy moyenne plus élevée (86,20%).
+
+Nous avons finalement retenu l'approche par PLMFT pour ce projet, en raison de la plus grande importance accordée à l'accuracy moyenne et du fait que nous supposons que l'évaluation du projet se fera avec un GPU (réduisant le temps de traitement).
+
+Description du modèle final retenu :
+Le classifieur retenu repose sur un modèle de langue transformer pré-entrainé (cmarkea/distilcamembert-base) fine-tuné. L'architecture du modèle est basé sur un encodeur partagé, composé de trois têtes de classification (une par aspect) chacune composée d'une couche linéaire suivie d'une fonction d'activation softmax afin d'obtenir une distribution de probabilité sur les quatre classes à prédire (Positive, Négative, Neutre, NE). 
+Le modèle a été fine-tuné sur les jeux d'entrainement et de validation fournis dans le projet, avec les hyperparamètres suivants :
+- 5 epochs (avec sauvegarde du modèle à chaque epoch),
+- une longueur maximale des séquences de 256 tokens,
+- un batch size de 16 pour l'entrainement et de 32 pour la validation,
+- un taux d'apprentissage de 2*10^(-5),
+- un optimiseur AdamW,
+- un drop-out de 0.1 (warmup),
+- une weight decay de 0.01,
+- une fonction de perte d'entropie croisée (cross-entropy).
+
+Le modèle final atteint une accuracy moyenne de 86,20% sur le jeu de test.
+
 ________________________________________________________________________________
 
 ##### Utilisation de l'IA #####
 
-Dans le cadre de ce projet, nous avons utilisé l'IA pour nous aider à comprendre comment faire un classifieur fine-tuné avec plusieurs classes avec torch et transformers et pour écrire du code, notamment pour l'implémentation du classifieur PLMFT et certaines fonctions de parse du classifieur LLM. Les modèles utilisés sont ChatGPT (GPT-5.1) et Copilot.
+Dans le cadre de ce projet, nous avons utilisé l'IA pour nous aider à comprendre comment construire un classifieur fine-tuné avec plusieurs classes avec les librairies torch et transformers et pour écrire du code, notamment pour l'implémentation du classifieur PLMFT et certaines fonctions de parse du classifieur LLM. 
+Les modèles utilisés sont ChatGPT (GPT-5.1) et Copilot.
 
 ________________________________________________________________________________
 
