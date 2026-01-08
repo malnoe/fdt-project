@@ -202,7 +202,7 @@ class PLMFTClassifier:
 
     # Initialisation du tokenizer et du modèle
     def _init_plmft(self) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
         self.plm_model = AspectSentimentModel(
             base_model_name=self.model_name,
             dropout=float(_get_cfg(self.cfg, "dropout", 0.1)),
