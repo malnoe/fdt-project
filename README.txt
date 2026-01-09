@@ -8,9 +8,10 @@ ________________________________________________________________________________
 ##### Introduction #####
 
 L'objectif de ce projet est de construire un classifieur capable de déterminer l'opinion exprimée sur trois aspects (le prix, la cuisine et le service) dans des avis de clients de restaurants. L'opinion sur chaque aspect est référencée parmi l'une des quatre catégories suivantes : Positive, Négative, Neutre ou Non Exprimée (NE).
-Pour cela, nous avons construit et testé deux approches différentes de classifieur : une approche utilisant un Large Language Model (LLM) sans entraînement, et une approche par Fine-Tuning d'un modèle déjà pré-entrainé (PLMFT).
-La démarche globale ainsi que les résultats obtenus et le modèle retenu pour chaque approche sont détaillés dans les sections suivantes.
-Le modèle final retenu pour le projet est détaillé dans la conclusion.
+
+Pour cela, nous avons construit et testé deux approches différentes de classifieur : une approche utilisant un Large Language Model (LLM) sans entraînement avec un prompt designé pour cette tâche, et une approche par Fine-Tuning d'un modèle déjà pré-entrainé (PLMFT).
+
+La démarche globale ainsi que les résultats obtenus et le modèle retenu pour chaque approche sont détaillés dans les sections suivantes. Le modèle final retenu pour le projet est détaillé dans la conclusion.
 
 
 ________________________________________________________________________________
@@ -18,24 +19,24 @@ ________________________________________________________________________________
 
 ##### Approche par LLM sans entraînement #####
 
-Notre approche s'est construite en plusieurs étapes :
+Notre approche s'est déroulée en plusieurs étapes :
     
 * Étape 1. Tests de différents prompts sur les différents modèles de LLMs.
-	Nous avons rédigé différents prompts pour essayer d'augmenter les performances en testant plusieurs angles.
-	Pour chaque prompt, nous avons testé l'ensemble des LLM autorisés par le cadre du projet (gemma2:2b, gemma3:1b, llama3.2:1b, qwen2.5:1.5b et qwen3:1.7b) avec les mêmes hyperparamètres (temp=0.1 et top_p=0.9) afin de comparer les performances en termes d'accuracy moyenne globale et de temps d'exécution.
+	Nous avons tout d'abord chercher quel modèle parmi les LLM autorisés dans le cadre du projet (gemma2:2b, gemma3:1b, llama3.2:1b, qwen2.5:1.5b et qwen3:1.7b) était le plus performant en utilisant un seul appel au même LLM avec un prompt designé pour la tâche d'analyse d'opinion. Nous avons rédigé différents prompts avec différentes variations des consignes afin d'essayer d'améliorer les performances des LLMs.
+Nous avons testés l'ensemble des prompts sur l'ensemble des modèle en utilisant à chaque fois les mêmes hyper paramètres (temp=0.1 et top_p=0.9) afin de comparer les performances en termes d'accuracy moyenne globale et de temps d'exécution.
 
 	Les prompts testés étaient les suivants :
-        	a. Un prompt basique détaillant les différents aspects à noter (Cuisine, Prix et Service) et les différents grades de notations (Positive, Neutre, Négative et Non Exprimée).
-        	b. Une version anglaise du prompt précédent, avec les tags en français pour conserver la cohérence de sortie.
-		c. Une version plus détaillée du premier prompt, avec notamment l'ajout de notions de références et de quelques mots exemples pour chaque aspect (e.g. : "L'aspect "Prix" fait référence aux prix des plats et boissons. Il concerne tout ce qui parle d'argent, de coût, de tarifs, etc., avec un vocabulaire tel que "trop cher", "prix", "rapport qualité/prix", etc.").
+        	a. Un prompt basique détaillant les différents aspects à analyser (Cuisine, Prix et Service) et les différentes opinions possibles (Positive, Neutre, Négative et Non Exprimée).
+        	b. Une version anglaise du prompt précédent, cependant toujours avec les tags en français pour conserver la cohérence de sortie.
+			c. Une version plus détaillée du premier prompt, avec notamment l'ajout de notions de références et de quelques mots exemples pour chaque aspect (e.g. : "L'aspect "Prix" fait référence aux prix des plats et boissons. Il concerne tout ce qui parle d'argent, de coût, de tarifs, etc., avec un vocabulaire tel que "trop cher", "prix", "rapport qualité/prix", etc.").
         	d. Une version anglaise du prompt précédent.
-        	e. Une version du premier prompt où nous demandions au LLM d'expliquer sa démarche (certaines études ont montré que les performances d'un LLM augmentaient simplement grâce à cette demande).
+        	e. Une version du premier prompt où nous demandons au LLM d'expliquer sa démarche (certaines études ayant montré que les performances d'un LLM pouvaient augmenter grâce à cette demande).
         	f. Une version du premier prompt avec l'ajout d'exemples de classifications d'opinions.
         	g. Une combinaison de plusieurs approches, i.e. un prompt plus détaillé avec l'ajout d'exemples de classification d'opinions. Nous n'avons pas ajouté l'explication de la démarche car le temps de calcul était trop long par rapport à l'efficacité du prompt.
 
-	Cette première étape nous a permis de sélectionner une première combinaison prompt/LLM à retenir pour les étapes suivantes.
-	À quelques exceptions près, le LLM avec les meilleures performances en termes d'accuracy moyenne et de temps de calcul était toujours le gemma2:2b, et la meilleure accuracy moyenne (83,61% pour 686s de prédiction) avec ce LLM a été obtenue avec le prompt basique en anglais. 
+	À quelques exceptions près, le LLM avec les meilleures performances en termes d'accuracy moyenne et de temps de calcul était toujours le gemma2:2b, et la meilleure accuracy moyenne (83,61% pour 686s de prédiction) avec ce LLM a été obtenue avec le prompt basique en anglais.
 	Nous avons pu constater que l'ajout d'exemples détériorait significativement l'accuracy moyenne, tandis que l'explication de la démarche augmentait grandement le temps de calcul. L'ajout de détails n'a eu que peu d'impact sur l'accuracy moyenne mais augmentait grandement le temps d'exécution, c'est pourquoi nous ne l'avons pas conservé.
+	Cette première étape nous a ainsi permis de sélectionner une première combinaison prompt/LLM à retenir pour les étapes suivantes : le modèle gemma2:2B avec le prompt basique en anglais.
 
 
 * Étape 2. Recherche des meilleurs hyperparamètres.
