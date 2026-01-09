@@ -40,24 +40,25 @@ Nous avons testés l'ensemble des prompts sur l'ensemble des modèle en utilisan
 
 
 * Étape 2. Recherche des meilleurs hyperparamètres.
-	Une fois la meilleure combinaison prompt/LLM retenue (prompt basique en anglais avec gemma2:2b), nous avons testé différentes combinaisons de valeurs pour les hyperparamètres de température `temp` et `top_p` afin d'observer leur impact sur l'accuracy moyenne et le temps d'exécution (temp = [0.1,0.5,0.8] et top_p = [0.3,0.5,0.9]). Nous n'avons pas testé plus de valeurs pour la température et la top_p car nous n'avons observé que des variations minimales (<0.1%) de l'accuracy moyenne entre ces différentes valeurs.
+	Une fois la meilleure combinaison prompt/LLM retenue, nous nous sommes intéressés à deux hyper-paramètres du modèle :
+	- la température `temp` : paramètre contrôlant l'aspect aléatoire des réponses du LLM, une température basse donne des réponses plus stables alors qu'une température élevée rend la réponse plus instable mais également potentiellement plus créative.
+	- la top_p : paramètre contrôlant la probabilité cumulée minimale des mots pris en compte pour la prédiction, une top_p basse entraine une sélection des mots les plus probables et donc plus de précision tandis qu'une top_p plus élevée permet plus de diversité.
+	Nous avons testé différentes combinaisons de valeurs pour les hyperparamètres de température et `top_p` afin d'observer leur impact sur l'accuracy moyenne et le temps de prédiction (temp = [0.1,0.5,0.8] et top_p = [0.3,0.5,0.9]). Nous avons testés plusieurs fois (3) chaque combinaisons d'hyper-paramètres. Nous n'avons pas testé plus de valeurs pour la température et la top_p car nous n'avons observé que des variations minimales (<0.1%) de l'accuracy moyenne entre les valeurs déjà testées.
 	Les variations de température n'ont pas eu d'impact significatif sur les performances mais nous avons noté un léger intérêt à diminuer la top_p pour augmenter l'accuracy moyenne (81,83% au moins => 83,78% au plus).
-	Les meilleures performances (accuracy moyenne = 83,78, temps d'exécution de 601 secondes) ont été obtenues avec une température de 0.1 et une top_p de 0.5, ces paramètres ont donc été retenus.
+	Les meilleures performances (accuracy moyenne = 83,78%, temps d'exécution de 601 secondes) ont été obtenues avec une température de 0.1 et une top_p de 0.5, ces paramètres ont donc été retenus.
 
 
 * Étape 3. Vote de majorité après répétition de plusieurs appels d'un même prompt.
-	Nous avons ensuite testé une approche de vote à la majorité en répétant trois fois l'appel d'un même LLM avec le même prompt et une température élevée (temp=0.7 pour les meilleures performances et top_p=0.5) afin peut-être d'obtenir une meilleure précision. 
-	Nous avons de nouveau utilisé la combinaison prompt en anglais / gemma2:2b retenue à l'étape 1.
-	N'ayant pas constaté de réel intérêt à cette approche (accuracy moyenne = 83,67 au mieux), nous avons donc décidé de ne pas la retenir, notamment en raison de temps d'exécution plutôt conséquents (moyenne = 2062 secondes contre environ 600 secondes) liés à la répétition des appels LLM pour une seule prédiction.
-
+	Nous avons ensuite testé une approche de vote à la majorité en répétant trois fois l'appel d'un même LLM avec le même prompt et une température élevée afin peut-être d'obtenir une meilleure précision. Nous avons de nouveau utilisé la combinaison prompt en anglais / gemma2:2b retenue à l'étape 1.
+	Les meilleurs performances ont été obtenus avec une température de 0.7 et une top_p de 0.5 pour une accuracy moyenne de 83,67 au mieux un temps de prédiction de 2062 secondes en moyenne (contre 600 seconde avec un seul appel au LLM). Les performances étant similaires pour un temps d'exécution plus conséquent, nous n'avons pas constaté de réel intérêt à l'utilisation de cette approche et nous avons donc décisdé de ne pas la retenir.
 
 * Étape 4. Un prompt par aspect.
-	La dernière étape tentée pour cette approche a été la construction de prompt individuel pour chaque aspect.
+	Enfin, la dernière étape pour cette approche a été l'appel à un LLM pour chaque aspect avec un prompt designé pour chacun des aspects, puis une combinaisons des réponses pour la prédiction générale.
 	Nous avons testé des prompts basiques en français et en anglais pour chaque aspect (même forme que précédemment mais redécoupé pour chaque aspect), dont nous avons ensuite combiné les prédictions afin d'obtenir le format final souhaité. 
 	Cette approche n'ayant pas donné de bons résultats en termes d'accuracy moyenne (accuracy moyenne max = 68,11%), nous n'avons pas poussé la démarche plus loin et avons décidé de ne pas retenir cette approche.
 
 
-Pour l'approche par LLM, nous avons donc finalement retenu le LLM gemma2:2b avec le prompt en anglais (prompt n°3 en Annexe) ci-dessous, avec une température de 0.1 et une top_p de 0.5. Nous avons obtenu une accuracy moyenne de 83.78 pour un temps d'exécution de 601 secondes.
+Pour l'approche par LLM, nous avons donc finalement retenu le LLM gemma2:2b avec le prompt en anglais ci-dessous, avec une température de 0.1 et une top_p de 0.5. Nous avons obtenu une accuracy moyenne de 83.78% pour un temps d'exécution de 601 secondes pour 600 tests.
 
 """Considere the following review:
 
@@ -76,6 +77,7 @@ Pour l'approche par LLM, nous avons donc finalement retenu le LLM gemma2:2b avec
     The response must be limited to the following json format:
     {"Prix": opinion, "Cuisine": opinion, "Service": opinion}."""
 
+
 L'ensemble des autres prompts testés sont disponibles en annexe de ce document.
 
 
@@ -84,14 +86,14 @@ ________________________________________________________________________________
 
 ##### Approche par PLMFT #####
 
-Pour cette approche, nous avons testés plusieurs modèles masqués pré-entrainés (au moins en partie) sur des données en français, qui sont disponibles sur Hugging Face et qui comprennent moins de 300 millions de paramètres : 
+Pour cette approche, nous avons testés plusieurs modèles masqués pré-entrainés, au moins en partie, sur des données en français, disponibles sur Hugging Face et comprennant moins de 300 millions de paramètres :
 	- google-bert/bert-base-multilingual-cased
 	- almanach/camembert-base
 	- almanach/moderncamembert-base
 	- FacebookAI/xlm-roberta-base
 	- cmarkea/distilcamembert-base
 
-L'ensemble de ces modèles ont été fine-tunés sur les jeux d'entraînement et de validation fournis pour la tâche de classification des avis en 4 classes (Positive, Neutre, Négative, NE) pour chacun des aspects (Prix, Cuisine, Service) avec 3 epochs et les mêmes hyperparamètres. Pour chaque modèle, les résultats obtenus sur le jeu de validation sont recensés dans le tableau suivant :
+Tout d'abord, l'ensemble de ces modèles ont été fine-tunés sur les jeux d'entraînement et de validation fournis pour la tâche de classification des avis en 4 classes (Positive, Neutre, Négative, NE) pour chacun des aspects (Prix, Cuisine, Service) avec 3 epochs et les mêmes hyperparamètres (détaillés par la suite). Les résultats obtenus sur le jeu de validation sont recensés dans le tableau suivant :
 
 | Modèle                                   | Accuracy moyenne (%) | Temps d'entrainement (s) | Temps de prédiction (s) |
 |------------------------------------------|----------------------|--------------------------|-------------------------|
@@ -102,7 +104,7 @@ L'ensemble de ces modèles ont été fine-tunés sur les jeux d'entraînement et
 | cmarkea/distilcamembert-base             | 84,56                | 3516                     | 53                      |
 
 
-Nous avons ensuite testé les trois modèles ayant obtenu les meilleurs résultats sur le jeu de validation (moderncamembert-base, xlm-roberta-base et distilcamembert-base) sur 5 epochs (avec toujours les mêmes hyperparamètres) afin de voir si les performances pouvaient être encore améliorées. Les résultats obtenus sont recensés dans le tableau suivant :
+Nous avons ensuite poursuivi l'entrainement des trois modèles ayant obtenu les meilleurs résultats sur le jeu de validation (moderncamembert-base, xlm-roberta-base et distilcamembert-base) sur 5 epochs (avec toujours les mêmes hyperparamètres) afin de voir si les performances pouvaient être encore améliorées. Les résultats obtenus sont recensés dans le tableau suivant :
 
 | Modèle                                   | Accuracy moyenne (%) | Temps d'entrainement (s) | Temps de prédiction (s) |
 |------------------------------------------|----------------------|--------------------------|-------------------------|
@@ -111,8 +113,9 @@ Nous avons ensuite testé les trois modèles ayant obtenu les meilleurs résulta
 | cmarkea/distilcamembert-base             | 85,94                | 5730                     | 53                      |
 
 
-Le modèle retenu à la fin de cette étape est donc le cmarkea/distilcamembert-base fine-tuné. 
-Pour compléter cette approche, nous avons  finalement entraîné ce modèle sur 10 epochs plusieurs fois pour choisir à quelle epoch s'arrêter. À chaque fois, c'est l'epoch 5 qui a été retenu, avec une accuracy moyenne de 86.39, 86,28 et 85,94 respectivement pour les trois essais. Les epochs suivantes présentent un loss plus important sur le jeu de validation.
+Le modèle retenu à la fin de cette étape est donc le cmarkea/distilcamembert-base fine-tuné.
+
+Pour compléter cette approche, nous avons  finalement entraîné ce modèle sur 10 epochs plusieurs fois pour choisir à quelle epoch s'arrêter. À chaque fois, c'est l'epoch 5 qui a été retenue, avec une accuracy moyenne de 86.39%, 86,28% et 85,94% respectivement pour les trois essais, les epochs suivantes présentant un loss plus important sur le jeu de validation.
 
 Pour l'approche par PLMFT, le modèle retenu est donc celui entrainé sur cmarkea/distilcamembert-base fine-tuné sur 5 epochs, avec lequel nous obtenons une accuracy moyenne de 86,20%.
 
