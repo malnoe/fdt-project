@@ -144,16 +144,6 @@ Le modèle a été fine-tuné sur les jeux d'entraînement et de validation four
 
 Le modèle final atteint une accuracy moyenne de 86,20% sur le jeu de test.
 
-
-________________________________________________________________________________
-
-
-##### Utilisation de l'IA #####
-
-Dans le cadre de ce projet, nous avons utilisé l'IA pour nous aider à comprendre comment construire un classifieur fine-tuné avec plusieurs classes avec les librairies torch et transformers et pour écrire du code, notamment pour l'implémentation du classifieur PLMFT et certaines fonctions de parse du classifieur LLM. 
-Les modèles utilisés sont ChatGPT (GPT-5.1) et Copilot.
-
-
 ________________________________________________________________________________
 ________________________________________________________________________________
 
@@ -427,3 +417,12 @@ ________________________________________________________________________________
 	La valeur "NE" (qui signifie Non Exprimé) fait référence à un avis qui ne contient aucune opinion exprimée sur le prix.
 
 	La réponse doit se limiter à la valeur de l'opinion uniquement."""
+
+
+________________________________________________________________________________
+
+
+##### Utilisation de l'IA #####
+
+Dans le cadre de ce projet, nous avons utilisé l'IA pour nous aider à comprendre comment construire un classifieur fine-tuné avec plusieurs classes avec les librairies torch et transformers et pour écrire du code, notamment pour l'implémentation du classifieur PLMFT et certaines fonctions de parse du classifieur LLM. 
+Les modèles utilisés sont ChatGPT (GPT-5.1) et Copilot.
